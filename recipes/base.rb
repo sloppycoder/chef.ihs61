@@ -3,20 +3,19 @@
 # Recipe:: base
 #
 #
-CACHE = Chef::Config[:file_cache_path]
+CACHE = Chef::Config['file_cache_path']
 
-attribs = node[:ihs61]
+attribs = node['ihs61']
 
-ihs_home = attribs[:ihs_install_location]
+ihs_home = attribs['ihs_install_location']
 
 unless ::File.exist? ihs_home
 
   # install the rpm packages required to IBM JRE
-  if platform?('redhat', 'centos')
-    package ['compat-db', 'compat-libstdc++-33'] do
-      arch 'i686'
-      action :install
-    end
+  package ['compat-db', 'compat-libstdc++-33'] do
+    arch 'i686'
+    action :install
+    only_if { platform?('redhat', 'centos', 'amazon', 'scientific') }
   end
 
   unpack_dir = ::File.join(CACHE, 'ihs_installer')
@@ -25,14 +24,14 @@ unless ::File.exist? ihs_home
     action :create
   end
 
-  installer =  CACHE + '/' + attribs[:ihs_installer]
+  installer =  CACHE + '/' + attribs['ihs_installer']
   if installer.start_with?('file://')
     installer = installer.sub(%r{^file://}, '')
   else
     remote_file installer do
       action :create_if_missing
       mode 0644
-      source attribs[:file_server_url] + attribs[:ihs_installer]
+      source attribs['file_server_url'] + attribs['ihs_installer']
     end
   end
 
@@ -52,7 +51,7 @@ unless ::File.exist? ihs_home
 
   execute 'install ihs' do
     cwd unpack_dir + '/IHS'
-    user attribs[:user]
+    user attribs['user']
     umask 0022
     command "./install -options #{response_file}  -silent "
   end
